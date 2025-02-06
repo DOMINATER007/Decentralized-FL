@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
+import numpy as np
 
 def perform_knowledge_distillation(leader, followers, epochs=5, lr=0.001, batch_size=32):
     """
