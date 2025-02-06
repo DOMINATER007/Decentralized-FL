@@ -16,7 +16,7 @@ longitude=random.uniform(-180,180)
 bandwidth = random.randint(10,200)
 
 coordinate=Point(latitude,longitude)
-
+print(f"Client {client_id} is at {coordinate}.")
 
 # Initialize client
 client1 = client_base(client_id, model, dataset_train, dataset_test, coordinate, bandwidth)
