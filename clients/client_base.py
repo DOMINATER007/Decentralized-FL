@@ -17,11 +17,15 @@ class client_base:
         self.freq_elected_as_leader = 0
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind(('localhost', 8080+client_id))
+        print("bind completed")
         self.server_address=self.server_socket.getsockname()
         self.server_port = self.server_socket.getsockname()[1]
-        self.server_socket.listen()
-        self.server_thread = threading.Thread(target=self.server)
+        
+        self.server_thread = threading.Thread(target=self.receive_data_from_other_clients, daemon=True)
+        print(self.server_port)
         self.server_thread.start()
+        self.server_thread.join()
+        self.data_of_others=None
 
     def send_data_to_other_clients(self, other_clients):
         for client in other_clients:
