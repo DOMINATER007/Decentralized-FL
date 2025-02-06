@@ -20,4 +20,11 @@ if __name__ == "__main__":
     locations = [(c.coordinates[0],c.coordinates[1]) for c in clients]
     
     valid_clusters, cluster_centers, labels, client_coords = perform_clustering(locations,eps=200, min_samples=2)
-    plot_clusters(client_coords, labels)
+    print(cluster_centers)
+    print("\n================================\n")
+    print(labels)
+    print("\n================================\n")
+    print(client_coords)
+    print("\n================================\n")
+    print(valid_clusters)
+    #plot_clusters(client_coords, labels)
