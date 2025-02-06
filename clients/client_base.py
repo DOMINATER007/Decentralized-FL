@@ -28,40 +28,6 @@ class client_base:
         #self.server_thread.join()
         self.data_of_others=None
 
-    def send_data_to_other_clients(self, other_clients):
-        for client in other_clients:
-            if client.client_id != self.client_id:
-                try:
-                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    s.connect(("localhost", 8080 + client.client_id))  # Example port mapping
-                    data = {
-                        "model_architecture": str(self.model.__class__.__name__),
-                        "coordinates": self.coordinates,
-                        "bandwidth": self.bandwidth,
-                        "accuracy_history_list": self.accuracy_history_list,
-                        "client_id": self.client_id,
-                    }
-                    s.sendall(str(data).encode())
-                    s.close()
-                except Exception as e:
-                    print(f"Failed to send data to client {client.client_id}: {e}")
-
-
-    def receive_data_from_other_clients(self):
-        
-        while True:
-            conn, addr = self.server_socket.accept()
-            data = conn.recv(1024).decode()
-            print(f"Received data from {addr}: {data}")
-            conn.close()
-
-    def get_penultimate_layer_outputs(self, x):
-        layers = list(self.model.children())
-        penultimate_layer = layers[-2]
-        with torch.no_grad():
-            outputs = penultimate_layer(x)
-        return outputs
-    
     def json_encode1(self):
         data=dict()
         data['location']=self.coordinates
@@ -79,4 +45,23 @@ class client_base:
                     }
         
         obj=json.dumps(data)
-        return obj
+        return obj        
+    def braoadCast(self,peers):
+        for addr,port in peers:
+            self.server_socket.connect((addr,port))
+            self.server_socket.send(self.json_encode1())
+    def recvHelper(self):
+        while True:
+            client_soc,client_addr=self.server_socket.accept()
+            try:
+                data=client_soc.recv(1024)
+                print(f"Received Data {data} from {client_addr}")
+                self.data_of_others[self.client_id]=data
+            except Exception as e:
+                print(f"Excepton Occured {e}")
+            finally:
+                client_soc.close()
+    def receive_end(self):
+        listening_thread=threading.Thread(target=self.recvHelper)
+        listening_thread.start()
+    
