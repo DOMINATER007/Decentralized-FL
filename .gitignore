@@ -1,4 +1,5 @@
 data/
 client_datasets/
-clients/__pycache__
 clients/__pycache__/
+clusteringLogic/__pycache__/
+Models/__pycache__/

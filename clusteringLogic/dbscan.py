@@ -18,9 +18,9 @@ def haversine(coord1, coord2):
     # HAVERSINE DISTANCE
     return geodesic(coord1, coord2).km
 
-def perform_clustering(eps=200, min_samples=2):
+def perform_clustering(client_coords,eps=200, min_samples=2):
     # Convert client coordinates to numpy array
-    client_coords = np.array(list(client_coordinates.values()))
+    client_coords = np.array(client_coords)
 
     # DBSCAN clustering
     dbscan = DBSCAN(eps=eps, min_samples=min_samples, metric=lambda x, y: haversine(x, y))
@@ -65,5 +65,5 @@ def plot_clusters(client_coords, labels):
     plt.show()
 
 # Perform clustering and plot results
-valid_clusters, cluster_centers, labels, client_coords = perform_clustering(eps=200, min_samples=2)
-plot_clusters(client_coords, labels)
+# valid_clusters, cluster_centers, labels, client_coords = perform_clustering(eps=200, min_samples=2)
+# plot_clusters(client_coords, labels)
