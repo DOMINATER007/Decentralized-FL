@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Models.cnn3 import CNN3
-from client_base import client_base
+from clients.client_base import client_base
 from geopy.point import Point
 
 import random

@@ -3,12 +3,12 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Models.cnn5 import CNN5
-from clients import client_base
+from clients.client_base import client_base
 from geopy.point import Point
 import numpy as np
 import random
 # Define client-specific parameters
-client_id = 1
+client_id = 7
 model = CNN5()
 dataset_train = "./DataDistribution/client_datasets/client_7_train.npz"
 dataset_test = "./DataDistribution/client_datasets/client_7_test.npz"

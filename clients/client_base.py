@@ -1,3 +1,4 @@
+import json
 import socket
 import threading
 import pickle
@@ -20,11 +21,11 @@ class client_base:
         print("bind completed")
         self.server_address=self.server_socket.getsockname()
         self.server_port = self.server_socket.getsockname()[1]
-        
-        self.server_thread = threading.Thread(target=self.receive_data_from_other_clients, daemon=True)
+        self.server_socket.listen(10)
+        #self.server_thread = threading.Thread(target=self.receive_data_from_other_clients, daemon=True)
         print(self.server_port)
-        self.server_thread.start()
-        self.server_thread.join()
+        #self.server_thread.start()
+        #self.server_thread.join()
         self.data_of_others=None
 
     def send_data_to_other_clients(self, other_clients):
@@ -60,3 +61,22 @@ class client_base:
         with torch.no_grad():
             outputs = penultimate_layer(x)
         return outputs
+    
+    def json_encode1(self):
+        data=dict()
+        data['location']=self.coordinates
+        data['id']=self.client_id
+        obj=json.dumps(data)
+        return obj
+    
+    def json_encode2(self):
+        data = {
+                        "model_architecture": str(self.model.__class__.__name__),
+                        "coordinates": self.coordinates,
+                        "bandwidth": self.bandwidth,
+                        "accuracy_history_list": self.accuracy_history_list,
+                        "client_id": self.client_id,
+                    }
+        
+        obj=json.dumps(data)
+        return obj
