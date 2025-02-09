@@ -33,9 +33,6 @@ def perform_clustering(client_coords,eps=200, min_samples=2):
             if label not in clusters:
                 clusters[label] = []
             clusters[label].append(idx+1)
-    print("\n==============777==================\n")
-    print(clusters)
-    print("\n================777================\n")
     # Filter clusters based on size constraints (at least 2 points per cluster)
     valid_clusters = {i: cluster for i, cluster in clusters.items() if len(cluster) >= 2}
 

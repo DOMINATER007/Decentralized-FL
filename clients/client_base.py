@@ -2,8 +2,15 @@ import json
 import socket
 import threading
 import pickle
+from sklearn.metrics import accuracy_score
 import torch
+import numpy as np
 import torch.nn as nn
+
+import torch.optim as optim
+
+from torch.utils.data import DataLoader, TensorDataset
+
 
 class client_base:
     def __init__(self, client_id, model, dataset_train, dataset_test, coordinates, bandwidth):
@@ -19,42 +26,45 @@ class client_base:
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind(('localhost', 8080+client_id))
         print("bind completed")
-        self.server_address=self.server_socket.getsockname()
+        self.server_address=self.server_socket.getsockname()[0]
+        print("server_address",self.server_address)
         self.server_port = self.server_socket.getsockname()[1]
         self.server_socket.listen(10)
-        #self.server_thread = threading.Thread(target=self.receive_data_from_other_clients, daemon=True)
+        self.server_thread = threading.Thread(target=self.recvHelper, daemon=True)
         print(self.server_port)
-        #self.server_thread.start()
+        self.server_thread.start()
         #self.server_thread.join()
-        self.data_of_others=None
+        self.data_of_others={}
 
     def json_encode1(self):
-        data=dict()
-        data['location']=self.coordinates
-        data['id']=self.client_id
-        obj=json.dumps(data)
-        return obj
+        data = {
+            'location': (self.coordinates.latitude,self.coordinates.longitude),
+            'id': self.client_id
+        }
+        return json.dumps(data)
     
     def json_encode2(self):
-        data = {
-                        "model_architecture": str(self.model.__class__.__name__),
-                        "coordinates": self.coordinates,
-                        "bandwidth": self.bandwidth,
-                        "accuracy_history_list": self.accuracy_history_list,
-                        "client_id": self.client_id,
-                    }
+        data = dict()
+        data['coordinates']=(self.coordinates.latitude,self.coordinates.longitude)
+        data['bandwidth']=self.bandwidth
+        data['accuracy_history_list']=self.accuracy_history_list
+        data['client_id']=self.client_id
+        data['History']=self.freq_elected_as_leader
         
         obj=json.dumps(data)
-        return obj        
+        return obj    
+        
     def braoadCast(self,peers):
         for addr,port in peers:
-            self.server_socket.connect((addr,port))
-            self.server_socket.send(self.json_encode1())
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            print(addr,port)
+            client_socket.connect((addr,port))
+            client_socket.send(self.json_encode2().encode('utf-8'))
     def recvHelper(self):
         while True:
             client_soc,client_addr=self.server_socket.accept()
             try:
-                data=client_soc.recv(1024)
+                data=client_soc.recv(1024).decode('utf-8')
                 print(f"Received Data {data} from {client_addr}")
                 self.data_of_others[self.client_id]=data
             except Exception as e:
@@ -64,4 +74,68 @@ class client_base:
     def receive_end(self):
         listening_thread=threading.Thread(target=self.recvHelper)
         listening_thread.start()
-    
+        
+    def load_data(self):
+        # Load training data
+        train_data = np.load(self.dataset_train)
+        X_train, y_train = train_data['x'], train_data['y']
+
+        # Load test data
+        test_data = np.load(self.dataset_test)
+        X_test, y_test = test_data['x'], test_data['y']
+
+        # Convert to PyTorch tensors
+        X_train = torch.tensor(X_train, dtype=torch.float32).unsqueeze(1)  # Add channel dimension
+        y_train = torch.tensor(y_train, dtype=torch.long)
+
+        X_test = torch.tensor(X_test, dtype=torch.float32).unsqueeze(1)
+        y_test = torch.tensor(y_test, dtype=torch.long)
+
+        return X_train, y_train, X_test, y_test
+
+    def train_model(self, num_epochs=2, batch_size=32, learning_rate=0.001):
+        X_train, y_train, X_test, y_test = self.load_data()
+
+        # Create DataLoader
+        train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=batch_size, shuffle=True)
+
+        # Define loss function and optimizer
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
+
+        # Training loop
+        for epoch in range(num_epochs):
+            self.model.train()
+            total_loss = 0
+
+            for batch_X, batch_y in train_loader:
+                optimizer.zero_grad()
+                outputs = self.model(batch_X)
+                loss = criterion(outputs, batch_y)
+                loss.backward()
+                optimizer.step()
+                total_loss += loss.item()
+
+            print(f"Epoch {epoch+1}/{num_epochs}, Loss: {total_loss:.4f}")
+
+        # Evaluate after training
+        accuracy = self.evaluate_model(X_test, y_test, batch_size)
+        self.accuracy_history_list.append(accuracy)
+
+    def evaluate_model(self, X_test, y_test, batch_size=32):
+        test_loader = DataLoader(TensorDataset(X_test, y_test), batch_size=batch_size, shuffle=False)
+
+        self.model.eval()
+        y_pred = []
+        y_true = []
+
+        with torch.no_grad():
+            for batch_X, batch_y in test_loader:
+                outputs = self.model(batch_X)
+                predicted = torch.argmax(outputs, dim=1)
+                y_pred.extend(predicted.cpu().numpy())
+                y_true.extend(batch_y.cpu().numpy())
+
+        accuracy = accuracy_score(y_true, y_pred)
+        print(f"Model Accuracy: {accuracy:.4f}")
+        return accuracy
