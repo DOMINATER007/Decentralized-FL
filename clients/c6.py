@@ -9,8 +9,8 @@ import random
 # Define client-specific parameters
 client_id = 6
 model = CNN7()
-dataset_train = "./DataDistribution/client_datasets/client_6_train.npz"
-dataset_test = "./DataDistribution/client_datasets/client_6_test.npz"
+dataset_train = r"E:\MAJORPROJECT\Decentralized-FL\DataDistribution\client_datasets\client_6_train.npz"
+dataset_test = r"E:\MAJORPROJECT\Decentralized-FL\DataDistribution\client_datasets\client_6_test.npz"
 latitude = random.uniform(-90, 90)
 longitude=random.uniform(-180,180)
 bandwidth = random.randint(10,200)
