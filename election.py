@@ -12,7 +12,9 @@ def election_helper(cluster_clients,data,alpha=0.5):
         print(type(others_data))
         for i,temp_data in others_data.items():
             temp_score[i]=0
-            score=alpha*(statistics.median(temp_data["accuracy_history_list"])*((statistics.stdev(temp_data["accuracy_history_list"])+0.005)**(-1)))
+            score = alpha * (statistics.median(temp_data["accuracy_history_list"]) * 
+                (statistics.stdev(temp_data["accuracy_history_list"]) if len(temp_data["accuracy_history_list"]) > 1 else 0.005) ** (-1))
+
             score+=(1-alpha)*temp_data["History"]
             temp_score[i]=score
         mx=0
