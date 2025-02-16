@@ -17,7 +17,8 @@ if __name__ == "__main__":
     clients=[c1.client1,c2.client2,c3.client3,c4.client4,c5.client5,c6.client6,c7.client7]
     for client in clients:
         print(f"\nRUNNING client {client.client_id}\n")
-        client.train_model()
+        accuracy=client.training_phase()
+        print(f"Model Accuracy of client{client.client_id}: {accuracy:.4f}")
     a=1
     for i in clients:
         i.coordinates,i.bandwidth=assign_random(a)
