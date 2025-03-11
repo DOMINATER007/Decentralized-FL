@@ -1,6 +1,7 @@
 from clients import c1,c2,c3,c4,c5,c6,c7
 import random
 import json
+from FKD import feature_based_kd
 from geopy.point import Point
 from clusteringLogic.dbscan import perform_clustering, plot_clusters
 from election import election_helper
@@ -17,7 +18,8 @@ if __name__ == "__main__":
     clients=[c1.client1,c2.client2,c3.client3,c4.client4,c5.client5,c6.client6,c7.client7]
     for client in clients:
         print(f"\nRUNNING client {client.client_id}\n")
-        accuracy=client.training_phase()
+        accuracy,_=client.training_phase()
+        #print(_)   PRINTING PENULTIMATE OUTPUTS
         print(f"Model Accuracy of client{client.client_id}: {accuracy:.4f}")
     a=1
     for i in clients:
@@ -40,18 +42,37 @@ if __name__ == "__main__":
             print(f"Client {c}")
         print("\n")
         data={}
-    
+        for c in cluster:
+            clients[c-1].cluster_id=cluster_id
         for c in cluster:
             peers=[(f'localhost',clients[i-1].server_port) for i in cluster if i!=c]
             json_data=clients[c-1].json_encode2()
             clients[c-1].braoadCast(peers)
         for c in cluster:
             for key,val in clients[c-1].data_of_others.items():
-                data[key]=json.loads(val)
+                print("***key : {key}\n")
+                for k,v in val.items():
+                    data[key]=v
+        print(f"*****\n {data} \n*****")
         leader=election_helper(cluster,data)
         print(f"Leader of cluster {cluster_id} is {leader}")
+        #peers=[(f'localhost',clients[i-1].server_port) for i in cluster if i!=leader]
+        # json_data=clients[leader-1].json_encode2()
+
+        # clients[c-1].braoadCast(peers)   
+        #clients[leader-1].model.get_penultimate_weights()
+        
+        peers=[(f'localhost',clients[i-1].server_port) for i in cluster if i!=leader]
+        clients[leader-1].broadcast_weights(peers)
         for c in cluster:
-            clients[c-1].cluster_id=cluster_id
+            if c!=leader:
+                ac=feature_based_kd(clients[leader-1],clients[c-1])
+                
+
+        # EACH CLUSTER HAVE PENULTIMATE WEIGHTS SHARED AND STORED IN THE FORM OF DICTIONARY OF DICTIONARIES
+        
+        
+        
         print("\n\n")
         
         
