@@ -35,6 +35,46 @@ class CNN3(nn.Module):
             _, penultimate_weights = self.forward(x)
         return penultimate_weights
 
+    # def train_model(self, data_path, epochs=1, batch_size=32, learning_rate=0.001):
+    #     data = np.load(data_path)
+    #     X_train, y_train = data['x'], data['y']
+        
+    #     X_train = torch.tensor(X_train, dtype=torch.float32).unsqueeze(1)  # Add channel dim
+    #     print(f"\nInput shape before training: {X_train.shape}\n")  # Should print [batch_size, 1, 28, 28]
+
+    #     y_train = torch.tensor(y_train, dtype=torch.long)
+
+    #     train_dataset = TensorDataset(X_train, y_train)
+    #     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    #     criterion = nn.CrossEntropyLoss()
+    #     optimizer = optim.Adam(self.parameters(), lr=learning_rate)
+
+    #     self.train()
+    #     for epoch in range(epochs):
+    #         total_loss = 0
+    #         for inputs, targets in train_loader:
+    #             #print(f"\nInputs.Shape --> {inputs.shape}\n")
+    #             optimizer.zero_grad()
+    #             outputs, _ = self.forward(inputs)
+    #             loss = criterion(outputs, targets)
+    #             loss.backward()
+    #             optimizer.step()
+    #             total_loss += loss.item()
+    #         print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss:.4f}")
+
+    #     # Calculate training accuracy
+    #     y_pred, y_true = [], []
+    #     self.eval()
+    #     with torch.no_grad():
+    #         for inputs, targets in train_loader:
+    #             outputs, _ = self.forward(inputs)
+    #             _, preds = torch.max(outputs, dim=1)
+    #             y_pred.extend(preds.numpy())
+    #             y_true.extend(targets.numpy())
+
+    #     training_accuracy = accuracy_score(y_true, y_pred)
+    #     return training_accuracy
     def train_model(self, data_path, epochs=1, batch_size=32, learning_rate=0.001):
         data = np.load(data_path)
         X_train, y_train = data['x'], data['y']
@@ -54,27 +94,33 @@ class CNN3(nn.Module):
         for epoch in range(epochs):
             total_loss = 0
             for inputs, targets in train_loader:
-                #print(f"\nInputs.Shape --> {inputs.shape}\n")
                 optimizer.zero_grad()
-                outputs, _ = self.forward(inputs)
+                outputs, penultimate = self.forward(inputs)
                 loss = criterion(outputs, targets)
                 loss.backward()
                 optimizer.step()
                 total_loss += loss.item()
             print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss:.4f}")
 
-        # Calculate training accuracy
+        # Calculate training accuracy and collect penultimate layer outputs
         y_pred, y_true = [], []
+        penultimate_outputs = []
         self.eval()
         with torch.no_grad():
             for inputs, targets in train_loader:
-                outputs, _ = self.forward(inputs)
+                outputs, penultimate = self.forward(inputs)
                 _, preds = torch.max(outputs, dim=1)
                 y_pred.extend(preds.numpy())
                 y_true.extend(targets.numpy())
+                penultimate_outputs.extend(penultimate.numpy())  # Store penultimate layer outputs
 
         training_accuracy = accuracy_score(y_true, y_pred)
-        return training_accuracy
+        print(np.array(penultimate_outputs).shape)
+        return {
+            "training_accuracy": training_accuracy,
+            "penultimate_outputs": np.array(penultimate_outputs)  # Convert to NumPy for easy use
+        }
+
 
     def test_model(self, data_path):
         data = np.load(data_path)
@@ -100,12 +146,25 @@ class CNN3(nn.Module):
     def get_model_details(self):
         total_params = sum(p.numel() for p in self.parameters())
         trainable_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+        hidden_layers = []
+        for name, layer in self.named_modules():
+            if isinstance(layer, (nn.Conv2d, nn.Linear, nn.ReLU, nn.MaxPool2d)):
+                layer_info = {
+                    "name": name,
+                    "type": layer.__class__.__name__,
+                    "output_shape": list(layer.weight.shape) if hasattr(layer, "weight") else "N/A"
+                }
+                hidden_layers.append(layer_info)
+
         details = {
             "total_params": total_params,
             "trainable_params": trainable_params,
+            "hidden_layers": hidden_layers,
             "model_architecture": str(self)
         }
         return details
+
 
 # Example usage:
 # model = CNN3(input_channels=1, num_classes=10)

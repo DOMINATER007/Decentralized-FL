@@ -65,25 +65,31 @@ class CNN5(nn.Module):
             total_loss = 0
             for inputs, targets in train_loader:
                 optimizer.zero_grad()
-                outputs, _ = self.forward(inputs)
+                outputs, penultimate = self.forward(inputs)
                 loss = criterion(outputs, targets)
                 loss.backward()
                 optimizer.step()
                 total_loss += loss.item()
             print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss:.4f}")
 
-        # Calculate training accuracy
+        # Calculate training accuracy and collect penultimate layer outputs
         y_pred, y_true = [], []
+        penultimate_outputs = []
         self.eval()
         with torch.no_grad():
             for inputs, targets in train_loader:
-                outputs, _ = self.forward(inputs)
+                outputs, penultimate = self.forward(inputs)
                 _, preds = torch.max(outputs, dim=1)
                 y_pred.extend(preds.numpy())
                 y_true.extend(targets.numpy())
+                penultimate_outputs.extend(penultimate.numpy())  # Store penultimate layer outputs
 
         training_accuracy = accuracy_score(y_true, y_pred)
-        return training_accuracy
+        print(np.array(penultimate_outputs).shape)
+        return {
+            "training_accuracy": training_accuracy,
+            "penultimate_outputs": np.array(penultimate_outputs)  # Convert to NumPy for easy use
+        }
 
     def test_model(self, data_path):
         data = np.load(data_path)

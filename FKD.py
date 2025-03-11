@@ -1,66 +1,108 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.metrics import accuracy_score
 
-def perform_knowledge_distillation(leader, followers, epochs=5, lr=0.001, batch_size=32):
+
+def get_penultimate_features(model, data_path):
     """
-    Perform Knowledge Distillation where followers learn from the leader's penultimate layer outputs.
+    Extract penultimate layer features from a trained model for a given dataset.
     
     Args:
-        leader: The leader client whose model acts as the teacher.
-        followers: List of follower clients whose models act as students.
-        epochs: Number of training epochs for KD.
-        lr: Learning rate for the optimizer.
-        batch_size: Batch size for training.
+        model: Trained PyTorch model (e.g., CNN3 or CNN7)
+        data_path: Path to .npz file containing 'x' (inputs) and 'y' (labels)
+    
+    Returns:
+        torch.Tensor: Penultimate layer features for the input data
     """
-    # Define a loss function (e.g., Mean Squared Error for regression-like KD)
-    criterion = nn.MSELoss()
+    data = np.load(data_path)
+    X = data['x']
+    X = torch.as_tensor(X, dtype=torch.float32).unsqueeze(1)  # Add channel dimension for MNIST (1, 28, 28)
+    model.eval()
+    with torch.no_grad():
+        features = model.get_penultimate_weights(X)
+    return features
 
-    # Train each follower using the leader's penultimate layer outputs
-    for follower in followers:
-        follower_model = follower.model
-        optimizer = optim.Adam(follower_model.parameters(), lr=lr)
+def feature_based_kd(leader,student, epochs=5, batch_size=32, learning_rate=0.001, feature_loss_weight=1.0):
+    import torch
+    import numpy as np
+    from torch import nn, optim
+    from torch.utils.data import TensorDataset, DataLoader
+    from sklearn.metrics import accuracy_score
 
-        # Load dataset from .npz file
-        dataset_path = follower.dataset_train
-        data = np.load(dataset_path)
-        train_data = data['data']  # Assuming 'data' contains the input features
-        train_labels = data['labels']  # Assuming 'labels' contains the target labels
+    # Load and prepare train data
+    train_data = np.load(student.dataset_train)
+    X_train, y_train = train_data['x'], train_data['y']
+    X_train = torch.as_tensor(X_train, dtype=torch.float32).unsqueeze(1)
+    y_train = torch.as_tensor(y_train, dtype=torch.long)
 
-        # Convert to PyTorch tensors
-        train_data_tensor = torch.tensor(train_data, dtype=torch.float32)
-        train_labels_tensor = torch.tensor(train_labels, dtype=torch.long)
+    # Get teacher's penultimate features for train set
+    teacher_features = leader.penultimate_outputs
 
-        # Create a DataLoader for batching
-        dataset = TensorDataset(train_data_tensor, train_labels_tensor)
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    # Determine feature dimensions
+    sample_input = X_train[0].unsqueeze(0)
+    with torch.no_grad():
+        student_outputs, student_features = student.model(sample_input)
+        student_feature_dim = student_features.size(1)
+        teacher_feature_dim = teacher_features.size(1)
 
-        print(f"Training follower {follower.client_id} with leader {leader.client_id}...")
+    # Create mapping layer if dimensions differ
+    if student_feature_dim != teacher_feature_dim:
+        mapping_layer = nn.Linear(teacher_feature_dim, student_feature_dim)
+    else:
+        mapping_layer = None
 
-        # Training loop
-        for epoch in range(epochs):
-            total_loss = 0.0
-            for batch_data, _ in dataloader:  # Ignore labels since we're doing KD on penultimate outputs
-                # Get penultimate layer outputs from the leader's model
-                with torch.no_grad():
-                    leader_penultimate_outputs = leader.get_penultimate_layer_outputs(batch_data)
+    # Create dataset with inputs, labels, and teacher features
+    train_dataset_with_features = TensorDataset(X_train, y_train, teacher_features)
+    train_loader_with_features = DataLoader(train_dataset_with_features, batch_size=batch_size, shuffle=True)
 
-                # Forward pass through the follower's model
-                _, follower_penultimate_outputs = follower_model(batch_data)
+    # Set up losses and optimizer
+    criterion_classification = nn.CrossEntropyLoss()
+    criterion_feature = nn.MSELoss()
+    if mapping_layer is not None:
+        optimizer = optim.Adam(list(student.model.parameters()) + list(mapping_layer.parameters()), lr=learning_rate)
+    else:
+        optimizer = optim.Adam(student.model.parameters(), lr=learning_rate)
 
-                # Compute the KD loss
-                loss = criterion(follower_penultimate_outputs, leader_penultimate_outputs)
+    # Train student model
+    student.model.train()
+    for epoch in range(epochs):
+        total_loss = 0
+        for inputs, targets, teacher_feat in train_loader_with_features:
+            optimizer.zero_grad()
+            student_outputs, student_features = student.model(inputs)
+            loss_class = criterion_classification(student_outputs, targets)
+            if mapping_layer is not None:
+                mapped_teacher_features = mapping_layer(teacher_feat)
+                loss_feature = criterion_feature(student_features, mapped_teacher_features)
+            else:
+                loss_feature = criterion_feature(student_features, teacher_feat)
+            total_loss_batch = loss_class + feature_loss_weight * loss_feature
+            total_loss_batch.backward()
+            optimizer.step()
+            total_loss += total_loss_batch.item()
+        print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss / len(train_loader_with_features):.4f}")
 
-                # Backward pass and optimization
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+    # Test the student model
+    test_data = np.load(student.dataset_test)
+    X_test, y_test = test_data['x'], test_data['y']
+    X_test = torch.as_tensor(X_test, dtype=torch.float32).unsqueeze(1)
+    y_test = torch.as_tensor(y_test, dtype=torch.long)
+    test_dataset = TensorDataset(X_test, y_test)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-                total_loss += loss.item()
+    y_pred, y_true = [], []
+    student.model.eval()
+    with torch.no_grad():
+        for inputs, targets in test_loader:
+            outputs, _ = student.model(inputs)
+            _, preds = torch.max(outputs, dim=1)
+            y_pred.extend(preds.cpu().numpy())
+            y_true.extend(targets.cpu().numpy())
 
-            avg_loss = total_loss / len(dataloader)
-            print(f"Epoch [{epoch + 1}/{epochs}], Loss: {avg_loss:.4f}")
-
-        print(f"Follower {follower.client_id} trained successfully.")
+    test_accuracy = accuracy_score(y_true, y_pred)
+    student.accuracy_history_list.append(test_accuracy)
+    print(f"\n***Distillation Accuracy : {test_accuracy}***********\n")
+    return test_accuracy

@@ -15,6 +15,7 @@ class client_base:
     def __init__(self, client_id, model, dataset_train, dataset_test, coordinates, bandwidth):
         self.client_id = client_id
         self.model = model
+        self.model_info={}
         self.dataset_train = dataset_train
         self.dataset_test = dataset_test
         self.coordinates = coordinates
@@ -34,6 +35,7 @@ class client_base:
         self.server_thread.start()
         #self.server_thread.join()
         self.data_of_others={}
+        self.penultimate_outputs=[]
 
     def json_encode1(self):
         data = {
@@ -51,8 +53,17 @@ class client_base:
         data['History']=self.freq_elected_as_leader
         
         obj=json.dumps(data)
-        return obj    
-        
+        return obj   
+    def json_encode3(self):
+        data=dict()
+        data['penultimate_outputs']=(self.penultimate_outputs) 
+        return json.dumps(data)
+    def broadcast_weights(self,peers):
+        for addr,port in peers:
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            #print(addr,port)
+            client_socket.connect((addr,port))
+            client_socket.send(self.json_encode3().encode('utf-8'))
     def braoadCast(self,peers):
         for addr,port in peers:
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -64,19 +75,27 @@ class client_base:
             client_soc,client_addr=self.server_socket.accept()
             try:
                 data=client_soc.recv(1024).decode('utf-8')
+                data=json.loads(data)
                 print(f"Received Data {data} from {client_addr}")
-                self.data_of_others[self.client_id]=data
+                client_id=data["client_id"]
+
+                if self.data_of_others[client_id] is None:
+                    self.data_of_others[client_id]={}
+                self.data_of_others[client_id][len(self.data_of_others[client_id])]=data
+                print(self.data_of_others)
             except Exception as e:
                 print(f"Excepton Occured {e}")
             finally:
+
                 client_soc.close()
     def receive_end(self):
         listening_thread=threading.Thread(target=self.recvHelper)
         listening_thread.start()
     def training_phase(self):
         accuracy=self.model.train_model(self.dataset_train)
-        self.accuracy_history_list.append(accuracy)
-        return accuracy
+        self.penultimate_outputs=accuracy["penultimate_outputs"]
+        self.accuracy_history_list.append(accuracy["training_accuracy"])
+        return accuracy["training_accuracy"],accuracy["penultimate_outputs"]
     def testing_phase(self):
         accuracy=self.model.test_model(self.dataset_test)
         print(f"Model Accuracy: {accuracy:.4f}")

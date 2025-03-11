@@ -5,8 +5,10 @@ def election_helper(cluster_clients,data,alpha=0.5):
     rank={}
     for i in cluster_clients:
         rank[i]=0
+    print(data)
     for client in cluster_clients:
         temp_score={}
+
         others_data={i:data[i] for i in cluster_clients if i!=client}
         print(others_data)
         print(type(others_data))
