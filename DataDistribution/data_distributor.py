@@ -32,12 +32,22 @@ def main(client_id, alpha1, alpha2, save_dir):
     x_full = full_mnist.data.numpy()  # Convert PyTorch tensors to NumPy arrays
     y_full = full_mnist.targets.numpy()
 
-    # Step 1: Apply first Dirichlet split (alpha1)
+    # Step 1: Apply first Dirichlet split (alpha1) to divide dataset into 2 parts
     splits = dirichlet_split(x_full, y_full, alpha=alpha1, num_splits=2)
-    taken_part, _ = splits  # Use only the first partition
+    taken_part,_ = splits  # Use only the first partition
 
-    # Step 2: Further split into train (30%) and test (20%) using alpha2
-    train_part, test_part = dirichlet_split(taken_part[0], taken_part[1], alpha=alpha2, num_splits=2)
+    # Step 2: Further split into train (95%) and test (5%) using alpha2
+    splits = dirichlet_split(taken_part[0], taken_part[1], alpha=alpha2, num_splits=20)
+
+    # Combine the first 19 splits (95%) as training set
+    train_indices = np.concatenate([splits[i][0] for i in range(19)])
+    train_labels = np.concatenate([splits[i][1] for i in range(19)])
+    train_part = (train_indices, train_labels)
+
+    # Use the last split (5%) as testing set
+    test_indices = splits[19][0]
+    test_labels = splits[19][1]
+    test_part = (test_indices, test_labels)
 
     # Step 3: Save dataset for this client
     os.makedirs(save_dir, exist_ok=True)
@@ -52,7 +62,7 @@ def main(client_id, alpha1, alpha2, save_dir):
 
 if __name__ == "__main__":
     alpha1 = 0.5  # Controls how non-IID the first split is
-    alpha2 = 1.0  # Controls train-test split randomness
+    alpha2 = 100.0  # Controls train-test split randomness
     save_dir = "./client_datasets"
 
     for client_id in range(1, 8):
