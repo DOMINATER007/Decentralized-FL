@@ -78,8 +78,8 @@ class client_base:
                 data=json.loads(data)
                 print(f"Received Data {data} from {client_addr}")
                 client_id=data["client_id"]
-
-                if self.data_of_others[client_id] is None:
+                print(f"\nClient ID {client_id}\n")
+                if client_id not in self.data_of_others:
                     self.data_of_others[client_id]={}
                 self.data_of_others[client_id][len(self.data_of_others[client_id])]=data
                 print(self.data_of_others)

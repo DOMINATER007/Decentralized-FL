@@ -50,7 +50,7 @@ if __name__ == "__main__":
             clients[c-1].braoadCast(peers)
         for c in cluster:
             for key,val in clients[c-1].data_of_others.items():
-                print("***key : {key}\n")
+                print(f"\n***key : {key}\n")
                 for k,v in val.items():
                     data[key]=v
         print(f"*****\n {data} \n*****")
