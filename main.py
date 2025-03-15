@@ -48,6 +48,7 @@ if __name__ == "__main__":
             peers=[(f'localhost',clients[i-1].server_port) for i in cluster if i!=c]
             json_data=clients[c-1].json_encode2()
             clients[c-1].braoadCast(peers)
+            
         for c in cluster:
             
             print(clients[c-1].data_of_others)
