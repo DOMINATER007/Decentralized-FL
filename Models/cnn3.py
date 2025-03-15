@@ -116,9 +116,12 @@ class CNN3(nn.Module):
 
         training_accuracy = accuracy_score(y_true, y_pred)
         print(np.array(penultimate_outputs).shape)
+        md=self.get_model_details()
+        print(f"\nModel Details : {md}\n")
         return {
             "training_accuracy": training_accuracy,
-            "penultimate_outputs": np.array(penultimate_outputs)  # Convert to NumPy for easy use
+            "penultimate_outputs": np.array(penultimate_outputs),# Convert to NumPy for easy use
+            "model_info":md
         }
 
 
@@ -160,8 +163,7 @@ class CNN3(nn.Module):
         details = {
             "total_params": total_params,
             "trainable_params": trainable_params,
-            "hidden_layers": hidden_layers,
-            "model_architecture": str(self)
+            "hidden_layers": len(hidden_layers)
         }
         return details
 
