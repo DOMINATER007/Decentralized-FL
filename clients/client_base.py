@@ -55,8 +55,8 @@ class client_base:
         obj=json.dumps(data)
         return obj   
     def json_encode3(self):
-        data=dict()
-        data['penultimate_outputs']=(self.penultimate_outputs) 
+        data = dict()
+        data['penultimate_outputs'] = self.penultimate_outputs.tolist()
         return json.dumps(data)
     def broadcast_weights(self,peers):
         for addr,port in peers:
@@ -76,13 +76,27 @@ class client_base:
             try:
                 data=client_soc.recv(1024).decode('utf-8')
                 data=json.loads(data)
+<<<<<<< HEAD
                 print(f"Received Data {data} from {client_addr}")
                 client_id=data["client_id"]
                 print(f"\nClient ID {client_id}\n")
                 if client_id not in self.data_of_others:
                     self.data_of_others[client_id]={}
                 self.data_of_others[client_id][len(self.data_of_others[client_id])]=data
+=======
+
+                print(f"Received Data {data} from {client_addr}")
+                cID=data["client_id"]
+            #    print("NOOOOOOOOOOO1")
+                if cID not in self.data_of_others:
+             #       print("NOOOOOOOOO2")
+                    self.data_of_others[cID]={}
+             #       print("NOOOOOOOO3")
+                self.data_of_others[cID][len(self.data_of_others[cID])]=data
+             #   print("NOOOOOOOOOO4")
+>>>>>>> e6ebb402fa0d3c38854d0cebc8d94016f3dbea73
                 print(self.data_of_others)
+            #    print("NOOOOOOOO5")
             except Exception as e:
                 print(f"Excepton Occured {e}")
             finally:

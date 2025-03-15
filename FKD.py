@@ -25,7 +25,7 @@ def get_penultimate_features(model, data_path):
         features = model.get_penultimate_weights(X)
     return features
 
-def feature_based_kd(leader,student, epochs=5, batch_size=32, learning_rate=0.001, feature_loss_weight=1.0):
+def feature_based_kd(leader,student, epochs=10, batch_size=32, learning_rate=0.001, feature_loss_weight=1.0):
     import torch
     import numpy as np
     from torch import nn, optim
@@ -39,14 +39,28 @@ def feature_based_kd(leader,student, epochs=5, batch_size=32, learning_rate=0.00
     y_train = torch.as_tensor(y_train, dtype=torch.long)
 
     # Get teacher's penultimate features for train set
-    teacher_features = leader.penultimate_outputs
+    teacher_features = torch.as_tensor(leader.penultimate_outputs, dtype=torch.float32)
+
+# Ensure teacher_features has the correct shape
+    if teacher_features.ndim == 1:
+        teacher_features = teacher_features.unsqueeze(1)  # Add dimension if missing
+    min_samples = min(X_train.shape[0], teacher_features.shape[0])
+    teacher_features = teacher_features[:min_samples]
+    X_train = X_train[:min_samples]
+    y_train = y_train[:min_samples]    
+
+# Ensure sizes match
+    assert X_train.shape[0] == teacher_features.shape[0], "Mismatch in number of samples!"
+
+# Now create the dataset safely
+    train_dataset_with_features = TensorDataset(X_train, y_train, teacher_features)
 
     # Determine feature dimensions
     sample_input = X_train[0].unsqueeze(0)
     with torch.no_grad():
         student_outputs, student_features = student.model(sample_input)
-        student_feature_dim = student_features.size(1)
-        teacher_feature_dim = teacher_features.size(1)
+        student_feature_dim = student_features.shape[1]
+        teacher_feature_dim = teacher_features.shape[1] 
 
     # Create mapping layer if dimensions differ
     if student_feature_dim != teacher_feature_dim:
