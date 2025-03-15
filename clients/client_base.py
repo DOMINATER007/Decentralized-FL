@@ -127,12 +127,8 @@ class client_base:
                     self.data_of_others[client_id]={}
                 self.data_of_others[client_id][len(self.data_of_others[client_id])]=data
                 print(self.data_of_others)
-<<<<<<< HEAD
             #    print("NOOOOOOOO5")
                 client_soc.send("ACK".encode('utf-8'))
-=======
-         
->>>>>>> 289d05a10e4772c3fff06b01840ee97c8ba57e4b
             except Exception as e:
                 print(f"Excepton Occured {e}")
             finally:
