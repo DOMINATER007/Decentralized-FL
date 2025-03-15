@@ -76,16 +76,12 @@ class client_base:
             try:
                 data=client_soc.recv(1024).decode('utf-8')
                 data=json.loads(data)
-
                 print(f"Received Data {data} from {client_addr}")
-                cID=data["client_id"]
-            #    print("NOOOOOOOOOOO1")
-                if cID not in self.data_of_others:
-             #       print("NOOOOOOOOO2")
-                    self.data_of_others[cID]={}
-             #       print("NOOOOOOOO3")
-                self.data_of_others[cID][len(self.data_of_others[cID])]=data
-             #   print("NOOOOOOOOOO4")
+                client_id=data["client_id"]
+                print(f"\nClient ID {client_id}\n")
+                if client_id not in self.data_of_others:
+                    self.data_of_others[client_id]={}
+                self.data_of_others[client_id][len(self.data_of_others[client_id])]=data
                 print(self.data_of_others)
             #    print("NOOOOOOOO5")
             except Exception as e:

@@ -3,68 +3,66 @@ import torch
 import os
 from torchvision import datasets, transforms
 
-def dirichlet_split(data, labels, alpha, num_splits):
+def dirichlet_split(data, labels, alpha, num_clients):
     """
-    Split the dataset into `num_splits` parts using Dirichlet distribution.
+    Split the dataset among `num_clients` using Dirichlet distribution to ensure class imbalance.
     """
     unique_classes = np.unique(labels)
     idx = {cls: np.where(labels == cls)[0] for cls in unique_classes}
-    split_data = {i: [] for i in range(num_splits)}
-
+    split_data = {i: [] for i in range(num_clients)}
+    
     for cls in unique_classes:
-        proportions = np.random.dirichlet([alpha] * num_splits)
+        proportions = np.random.dirichlet([alpha] * num_clients)
         np.random.shuffle(idx[cls])
-
+        
         # Compute split indices
         cls_splits = np.split(idx[cls], (np.cumsum(proportions[:-1]) * len(idx[cls])).astype(int))
         for i, split in enumerate(cls_splits):
             split_data[i].extend(split)
+    
+    # Extract data and labels for each client
+    client_splits = {i: (data[indices], labels[indices]) for i, indices in split_data.items()}
+    return client_splits
 
-    # Extract data and labels for each split
-    splits = [(data[indices], labels[indices]) for indices in split_data.values()]
-    return splits
-
-def main(client_id, alpha1, alpha2, save_dir):
+def main(num_clients, alpha, save_dir):
+    train_perc = 0.8   # Percentage of data allocated to
     # Load MNIST dataset using PyTorch
     transform = transforms.Compose([transforms.ToTensor()])
     full_mnist = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
     
     x_full = full_mnist.data.numpy()  # Convert PyTorch tensors to NumPy arrays
     y_full = full_mnist.targets.numpy()
-
-    # Step 1: Apply first Dirichlet split (alpha1) to divide dataset into 2 parts
-    splits = dirichlet_split(x_full, y_full, alpha=alpha1, num_splits=2)
-    taken_part,_ = splits  # Use only the first partition
-
-    # Step 2: Further split into train (95%) and test (5%) using alpha2
-    splits = dirichlet_split(taken_part[0], taken_part[1], alpha=alpha2, num_splits=20)
-
-    # Combine the first 19 splits (95%) as training set
-    train_indices = np.concatenate([splits[i][0] for i in range(19)])
-    train_labels = np.concatenate([splits[i][1] for i in range(19)])
-    train_part = (train_indices, train_labels)
-
-    # Use the last split (5%) as testing set
-    test_indices = splits[19][0]
-    test_labels = splits[19][1]
-    test_part = (test_indices, test_labels)
-
-    # Step 3: Save dataset for this client
+    
+    # Apply Dirichlet split to allocate samples among clients
+    client_splits = dirichlet_split(x_full, y_full, alpha=alpha, num_clients=num_clients)
+    
     os.makedirs(save_dir, exist_ok=True)
-    np.savez_compressed(os.path.join(save_dir, f"client_{client_id}_train.npz"),
-                        x=train_part[0], y=train_part[1])
-    np.savez_compressed(os.path.join(save_dir, f"client_{client_id}_test.npz"),
-                        x=test_part[0], y=test_part[1])
+    
+    for client_id, (x_client, y_client) in client_splits.items():
+        # Further split into train (80%) and test (20%)
+        num_train = int(train_perc * len(x_client))
+        indices = np.random.permutation(len(x_client))
+        
+        train_indices, test_indices = indices[:num_train], indices[num_train:]
+        train_part = (x_client[train_indices], y_client[train_indices])
+        test_part = (x_client[test_indices], y_client[test_indices])
+        
+        # Save dataset for this client
+        np.savez_compressed(os.path.join(save_dir, f"client_{client_id}_train.npz"),
+                            x=train_part[0], y=train_part[1])
+        np.savez_compressed(os.path.join(save_dir, f"client_{client_id}_test.npz"),
+                            x=test_part[0], y=test_part[1])
 
-    # Print the digit distribution per client
-    print(f"Client {client_id} - Training digit distribution: {np.bincount(train_part[1], minlength=10)}")
-    print(f"Client {client_id} - Testing digit distribution: {np.bincount(test_part[1], minlength=10)}")
+        # print(f"Client {client_id} - Total samples: {len(x_client)}")
+        # print(f"Client {client_id} - Training samples: {len(train_part[0])}")
+        # print(f"Client {client_id} - Testing samples: {len(test_part[0])}")
+        # print(f"Client {client_id} - Training digit distribution: {np.bincount(train_part[1], minlength=10)}")
+        # print(f"Client {client_id} - Testing digit distribution: {np.bincount(test_part[1], minlength=10)}\n\n")
 
 if __name__ == "__main__":
-    alpha1 = 0.5  # Controls how non-IID the first split is
-    alpha2 = 100.0  # Controls train-test split randomness
+    num_clients = 7  # Number of clients
+    alpha = 0.7  # Controls the class imbalance among clients
     save_dir = "./client_datasets"
-
-    for client_id in range(1, 8):
-        print(f"Processing data for Client {client_id}...")
-        main(client_id, alpha1, alpha2, save_dir)
+    
+    print("Processing data for all clients...")
+    main(num_clients, alpha, save_dir)
