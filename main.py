@@ -49,7 +49,7 @@ if __name__ == "__main__":
             json_data=clients[c-1].json_encode2()
             clients[c-1].braoadCast(peers)
         for c in cluster:
-            print("@@@@@@@")
+            
             print(clients[c-1].data_of_others)
             for key,val in clients[c-1].data_of_others.items():
                 print("***key : {key}\n")
