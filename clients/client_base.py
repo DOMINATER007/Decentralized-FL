@@ -24,7 +24,7 @@ class client_base:
         self.accuracy_history_list = []
         self.freq_elected_as_leader = 0
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.bind(('localhost', 8080+client_id))
+        self.server_socket.bind(('localhost', 8080+self.client_id))
         print("bind completed")
         self.server_address=self.server_socket.getsockname()[0]
         print("server_address",self.server_address)
@@ -51,6 +51,7 @@ class client_base:
         data['accuracy_history_list']=self.accuracy_history_list
         data['client_id']=self.client_id
         data['History']=self.freq_elected_as_leader
+        data['Model_info']=self.model_info
         
         obj=json.dumps(data)
         return obj   
@@ -139,8 +140,9 @@ class client_base:
     def training_phase(self):
         accuracy=self.model.train_model(self.dataset_train)
         self.penultimate_outputs=accuracy["penultimate_outputs"]
+        self.model_info=accuracy["model_info"]
         self.accuracy_history_list.append(accuracy["training_accuracy"])
-        return accuracy["training_accuracy"],accuracy["penultimate_outputs"]
+        return accuracy["training_accuracy"],accuracy["penultimate_outputs"],accuracy["model_info"]
     def testing_phase(self):
         accuracy=self.model.test_model(self.dataset_test)
         print(f"Model Accuracy: {accuracy:.4f}")

@@ -86,9 +86,12 @@ class CNN5(nn.Module):
 
         training_accuracy = accuracy_score(y_true, y_pred)
         print(np.array(penultimate_outputs).shape)
+        md=self.get_model_details()
+        print(f"\nModel Details : {md}\n")
         return {
             "training_accuracy": training_accuracy,
-            "penultimate_outputs": np.array(penultimate_outputs)  # Convert to NumPy for easy use
+            "penultimate_outputs": np.array(penultimate_outputs),# Convert to NumPy for easy use
+            "model_info":md
         }
 
     def test_model(self, data_path):
@@ -115,10 +118,20 @@ class CNN5(nn.Module):
     def get_model_details(self):
         total_params = sum(p.numel() for p in self.parameters())
         trainable_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        hidden_layers = []
+        for name, layer in self.named_modules():
+            if isinstance(layer, (nn.Conv2d, nn.Linear, nn.ReLU, nn.MaxPool2d)):
+                layer_info = {
+                    "name": name,
+                    "type": layer.__class__.__name__,
+                    "output_shape": list(layer.weight.shape) if hasattr(layer, "weight") else "N/A"
+                }
+                hidden_layers.append(layer_info)
+
         details = {
             "total_params": total_params,
             "trainable_params": trainable_params,
-            "model_architecture": str(self)
+            "hidden_layers": len(hidden_layers)
         }
         return details
 

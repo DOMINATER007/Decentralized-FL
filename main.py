@@ -19,7 +19,7 @@ if __name__ == "__main__":
     clients=[c1.client1,c2.client2,c3.client3,c4.client4,c5.client5,c6.client6,c7.client7]
     for client in clients:
         print(f"\nRUNNING client {client.client_id}\n")
-        accuracy,_=client.training_phase()
+        accuracy,_,_=client.training_phase()
         #print(_)   PRINTING PENULTIMATE OUTPUTS
         print(f"Model Accuracy of client{client.client_id}: {accuracy:.4f}")
     a=1
@@ -54,7 +54,7 @@ if __name__ == "__main__":
             
             print(clients[c-1].data_of_others)
             for key,val in clients[c-1].data_of_others.items():
-                print("***key : {key}\n")
+                print(f"***key : {key}\n")
                 for k,v in val.items():
                     data[key]=v
         print("data:{data}\n")            
