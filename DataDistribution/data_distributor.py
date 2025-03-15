@@ -52,8 +52,7 @@ def main(num_clients, alpha, save_dir):
                             x=train_part[0], y=train_part[1])
         np.savez_compressed(os.path.join(save_dir, f"client_{client_id}_test.npz"),
                             x=test_part[0], y=test_part[1])
-        
-        # Print digit distribution per client
+
         # print(f"Client {client_id} - Total samples: {len(x_client)}")
         # print(f"Client {client_id} - Training samples: {len(train_part[0])}")
         # print(f"Client {client_id} - Testing samples: {len(test_part[0])}")
