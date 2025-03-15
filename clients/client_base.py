@@ -77,22 +77,21 @@ class client_base:
                 data=client_soc.recv(1024).decode('utf-8')
                 data=json.loads(data)
 
-                print(f"Received Data {data} from {client_addr}")
+              #  print(f"Received Data {data} from {client_addr}")
                 cID=data["client_id"]
-            #    print("NOOOOOOOOOOO1")
+           
                 if cID not in self.data_of_others:
-             #       print("NOOOOOOOOO2")
+            
                     self.data_of_others[cID]={}
-             #       print("NOOOOOOOO3")
+         
                 self.data_of_others[cID][len(self.data_of_others[cID])]=data
-             #   print("NOOOOOOOOOO4")
+       
                 print(self.data_of_others)
-            #    print("NOOOOOOOO5")
+         
             except Exception as e:
                 print(f"Excepton Occured {e}")
             finally:
-
-                client_soc.close()
+                client_soc.close()  
     def receive_end(self):
         listening_thread=threading.Thread(target=self.recvHelper)
         listening_thread.start()

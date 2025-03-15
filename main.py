@@ -1,6 +1,7 @@
 from clients import c1,c2,c3,c4,c5,c6,c7
 import random
 import json
+import threading
 from FKD import feature_based_kd
 from geopy.point import Point
 from clusteringLogic.dbscan import perform_clustering, plot_clusters
@@ -41,7 +42,7 @@ if __name__ == "__main__":
         for c in cluster:
             print(f"Client {c}")
         print("\n")
-        data={}
+        data={}  
         for c in cluster:
             clients[c-1].cluster_id=cluster_id
         for c in cluster:
@@ -49,20 +50,14 @@ if __name__ == "__main__":
             json_data=clients[c-1].json_encode2()
             clients[c-1].braoadCast(peers)
         for c in cluster:
-            print("@@@@@@@")
             print(clients[c-1].data_of_others)
             for key,val in clients[c-1].data_of_others.items():
-                
                 for k,v in val.items():
                     data[key]=v
-        print(f"*****\n {data} \n*****")
+        print("data:{data}\n")            
         leader=election_helper(cluster,data)
         print(f"Leader of cluster {cluster_id} is {leader}")
-        #peers=[(f'localhost',clients[i-1].server_port) for i in cluster if i!=leader]
-        # json_data=clients[leader-1].json_encode2()
-
-        # clients[c-1].braoadCast(peers)   
-        #clients[leader-1].model.get_penultimate_weights()
+        
         
         peers=[(f'localhost',clients[i-1].server_port) for i in cluster if i!=leader]
         clients[leader-1].broadcast_weights(peers)
