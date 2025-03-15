@@ -64,12 +64,46 @@ class client_base:
             #print(addr,port)
             client_socket.connect((addr,port))
             client_socket.send(self.json_encode3().encode('utf-8'))
-    def braoadCast(self,peers):
-        for addr,port in peers:
-            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            print(addr,port)
-            client_socket.connect((addr,port))
-            client_socket.send(self.json_encode2().encode('utf-8'))
+    # def braoadCast(self,peers):
+    #     for addr,port in peers:
+    #         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #         print(addr,port)
+    #         client_socket.connect((addr,port))
+    #         client_socket.send(self.json_encode2().encode('utf-8'))
+    def braoadCast(self, peers):
+        self.received_acks = 0  # Track received acknowledgments
+        self.expected_acks = len(peers)  # Number of peers to acknowledge
+        self.ack_event = threading.Event()
+        self.ack_lock = threading.Lock()
+
+        def send_data(addr, port):
+            try:
+                client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                client_socket.connect((addr, port))
+                client_socket.send(self.json_encode2().encode('utf-8'))
+                
+                # Wait for acknowledgment
+                ack = client_socket.recv(1024).decode('utf-8')
+                if ack == "ACK":
+                    with self.ack_lock:
+                        self.received_acks += 1
+                        if self.received_acks == self.expected_acks:
+                            self.ack_event.set()  # Notify that all acks are received
+                
+                client_socket.close()
+            except Exception as e:
+                print(f"Broadcast error to {addr}:{port} - {e}")
+
+            # Start broadcasting in threads
+        threads = []
+        for addr, port in peers:
+            t = threading.Thread(target=send_data, args=(addr, port))
+            threads.append(t)
+            t.start()
+        
+        # Wait for all acknowledgments before proceeding
+        self.ack_event.wait()
+          
     def recvHelper(self):
         while True:
             client_soc,client_addr=self.server_socket.accept()
@@ -93,7 +127,8 @@ class client_base:
                     self.data_of_others[client_id]={}
                 self.data_of_others[client_id][len(self.data_of_others[client_id])]=data
                 print(self.data_of_others)
-         
+            #    print("NOOOOOOOO5")
+                client_soc.send("ACK".encode('utf-8'))
             except Exception as e:
                 print(f"Excepton Occured {e}")
             finally:

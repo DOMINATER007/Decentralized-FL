@@ -18,7 +18,7 @@ def haversine(coord1, coord2):
     # HAVERSINE DISTANCE
     return geodesic(coord1, coord2).km
 
-def perform_clustering(client_coords,eps=200, min_samples=2):
+def perform_clustering(client_coords,eps=300, min_samples=2):
     # Convert client coordinates to numpy array
     client_coords = np.array(client_coords)
 
