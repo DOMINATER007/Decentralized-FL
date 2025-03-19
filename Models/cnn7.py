@@ -22,7 +22,7 @@ class CNN7(nn.Module):
         self.relu = nn.ReLU()
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.flatten = nn.Flatten()
-
+        self.dropout = nn.Dropout(p=0.5)
     def forward(self, x):
         x = self.relu(self.conv1(x))
         x = self.pool(x)
@@ -36,6 +36,7 @@ class CNN7(nn.Module):
         x = self.relu(self.conv7(x))
         x = self.flatten(x)
         x = self.relu(self.fc1(x))
+        self.dropout = nn.Dropout(p=0.5)
         penultimate_weights = x.clone()  # Clone penultimate layer output
         x = self.fc2(x)
         return x, penultimate_weights
