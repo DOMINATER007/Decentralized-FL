@@ -121,13 +121,13 @@ class client_base:
          
                 self.data_of_others[cID][len(self.data_of_others[cID])]=data
        
-                print(f"Received Data {data} from {client_addr}")
+                #print(f"Received Data {data} from {client_addr}")
                 client_id=data["client_id"]
                 print(f"\nClient ID {client_id}\n")
                 if client_id not in self.data_of_others:
                     self.data_of_others[client_id]={}
                 self.data_of_others[client_id][len(self.data_of_others[client_id])]=data
-                print(self.data_of_others)
+                #print(self.data_of_others)
             #    print("NOOOOOOOO5")
                 client_soc.send("ACK".encode('utf-8'))
             except Exception as e:
