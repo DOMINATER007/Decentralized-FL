@@ -117,6 +117,6 @@ def feature_based_kd(leader,student, epochs=10, batch_size=32, learning_rate=0.0
             y_true.extend(targets.cpu().numpy())
 
     test_accuracy = accuracy_score(y_true, y_pred)
-    student.accuracy_history_list.append(test_accuracy)
-    print(f"\n***Distillation Accuracy : {test_accuracy}***********\n")
+    #student.accuracy_history_list.append(test_accuracy)
+    #print(f"\n***Distillation Accuracy : {test_accuracy}***********\n")
     return test_accuracy
