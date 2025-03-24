@@ -24,11 +24,11 @@ def dirichlet_split(data, labels, alpha, num_clients):
     client_splits = {i: (data[indices], labels[indices]) for i, indices in split_data.items()}
     return client_splits
 
-def main(num_clients, alpha, save_dir):
+def data_prep(num_clients, alpha, save_dir):
     train_perc = 0.8   # Percentage of data allocated to
     # Load MNIST dataset using PyTorch
     transform = transforms.Compose([transforms.ToTensor()])
-    full_mnist = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
+    full_mnist = datasets.MNIST(root="E:\MAJORPROJECT\Decentralized-FL\DataDistribution\data", train=True, download=True, transform=transform)
     
     x_full = full_mnist.data.numpy()  # Convert PyTorch tensors to NumPy arrays
     y_full = full_mnist.targets.numpy()
@@ -39,6 +39,7 @@ def main(num_clients, alpha, save_dir):
     os.makedirs(save_dir, exist_ok=True)
     
     for client_id, (x_client, y_client) in client_splits.items():
+        print(f"\n*****{client_id+1}****\n")
         # Further split into train (80%) and test (20%)
         num_train = int(train_perc * len(x_client))
         indices = np.random.permutation(len(x_client))
@@ -53,11 +54,11 @@ def main(num_clients, alpha, save_dir):
         np.savez_compressed(os.path.join(save_dir, f"client_{client_id}_test.npz"),
                             x=test_part[0], y=test_part[1])
 
-        # print(f"Client {client_id} - Total samples: {len(x_client)}")
-        # print(f"Client {client_id} - Training samples: {len(train_part[0])}")
-        # print(f"Client {client_id} - Testing samples: {len(test_part[0])}")
-        # print(f"Client {client_id} - Training digit distribution: {np.bincount(train_part[1], minlength=10)}")
-        # print(f"Client {client_id} - Testing digit distribution: {np.bincount(test_part[1], minlength=10)}\n\n")
+        print(f"Client {client_id} - Total samples: {len(x_client)}")
+        print(f"Client {client_id} - Training samples: {len(train_part[0])}")
+        print(f"Client {client_id} - Testing samples: {len(test_part[0])}")
+        print(f"Client {client_id} - Training digit distribution: {np.bincount(train_part[1], minlength=10)}")
+        print(f"Client {client_id} - Testing digit distribution: {np.bincount(test_part[1], minlength=10)}\n\n")
 
 if __name__ == "__main__":
     num_clients = 7  # Number of clients
@@ -65,4 +66,4 @@ if __name__ == "__main__":
     save_dir = "./client_datasets"
     
     print("Processing data for all clients...")
-    main(num_clients, alpha, save_dir)
+    data_prep(num_clients, alpha, save_dir)

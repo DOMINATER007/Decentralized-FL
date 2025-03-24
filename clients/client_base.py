@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 
 class client_base:
-    def __init__(self, client_id, model, dataset_train, dataset_test, coordinates, bandwidth):
+    def __init__(self, client_id, model, dataset_train, dataset_test, coordinates, bandwidth,p_rate):
         self.client_id = client_id
         self.model = model
         self.model_info={}
@@ -23,6 +23,7 @@ class client_base:
         self.cluster_id = None
         self.accuracy_history_list = []
         self.freq_elected_as_leader = 0
+        self.fixed_participation_rate = p_rate
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind(('localhost', 8080+self.client_id))
         print("bind completed")
