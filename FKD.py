@@ -101,14 +101,36 @@ def feature_based_kd(leader,student, epochs=10, batch_size=32, learning_rate=0.0
 
     # Test the student model
     test_data = np.load(student.dataset_test)
+    
     X_test, y_test = test_data['x'], test_data['y']
     X_test = torch.as_tensor(X_test, dtype=torch.float32).unsqueeze(1)
     y_test = torch.as_tensor(y_test, dtype=torch.long)
     test_dataset = TensorDataset(X_test, y_test)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
+
     y_pred, y_true = [], []
     student.model.eval()
+    penultimate_outputs = []
+    t_data = np.load(student.dataset_train)
+    tX_train, ty_train = t_data['x'], t_data['y']
+        
+    tX_train = torch.tensor(tX_train, dtype=torch.float32).unsqueeze(1)  # Add channel dim
+    #print(f"\nInput shape before training: {X_train.shape}\n")  # Should print [batch_size, 1, 28, 28]
+
+    ty_train = torch.tensor(ty_train, dtype=torch.long)
+
+    train_t_dataset = TensorDataset(tX_train, ty_train)
+    train_t_loader = DataLoader(train_t_dataset, batch_size=batch_size, shuffle=True)
+
+    with torch.no_grad():
+        for inputs, targets in train_t_loader:
+            outputs, penultimate = student.model.forward(inputs)
+            _, preds = torch.max(outputs, dim=1)
+            # y_pred.extend(preds.numpy())
+            # y_true.extend(targets.numpy())
+            penultimate_outputs.extend(penultimate.numpy())  # Store penultimate layer outputs
+    student.penultimate_outputs = penultimate_outputs
     with torch.no_grad():
         for inputs, targets in test_loader:
             outputs, _ = student.model(inputs)
