@@ -47,6 +47,11 @@ def create_clients(n, data_path):
     
     return clients
 
+def update_coordinates(client):
+    """Simulates mobility by updating client's coordinates randomly."""
+    delta_x = random.uniform(-0.05, 0.05)  # Small movement in x direction
+    delta_y = random.uniform(-0.05, 0.05)  # Small movement in y direction
+    client.coordinates = (client.coordinates[0] + delta_x, client.coordinates[1] + delta_y)
 
 if __name__ == "__main__":
     #clients=[c1.client1,c2.client2,c3.client3,c4.client4,c5.client5,c6.client6,c7.client7]
@@ -80,7 +85,10 @@ if __name__ == "__main__":
                 print(f"Model Accuracy of client{client.client_id}: {accuracy:.4f}")
         
         locations = [(c.coordinates[0],c.coordinates[1]) for c in clients]
-        
+        # Update client locations (simulate mobility)
+        for client in clients:
+            update_coordinates(client)
+        print(f"Updated Client Locations: {locations}\n")
         valid_clusters, cluster_centers, labels, client_coords = perform_clustering(locations,eps=200, min_samples=2)
         print(cluster_centers)
         # print("\n================================\n")
