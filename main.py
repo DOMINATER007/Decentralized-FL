@@ -32,7 +32,8 @@ def assign_random(a):
 def create_clients(n, data_path):
     clients = []
     for i in range(1, n + 1):
-        model = random.choice(available_models)()
+        print(f"\nCLIENT {i} has MODEL {available_models[(i-1)%3]}\n")
+        model = (available_models[(i-1)%3])()
         dataset_train = os.path.join(data_path, f"client_{i}_train.npz")
         dataset_test = os.path.join(data_path, f"client_{i}_test.npz")
         latitude = random.uniform(-90, 90)
@@ -64,8 +65,10 @@ if __name__ == "__main__":
         i.coordinates,i.bandwidth=assign_random(a)
         a+=1
 
-    for i in range(1,11):
+    for i in range(1,3):
         round_accuracy = {}
+        for client in clients:
+            round_accuracy[client.client_id] = {'before_KD': 0.0, 'after_KD': 0.0}
         print(f"\n\n --------------------Round :{i}-------------- \n\n")
         if i==1:
             for client in clients:
@@ -99,9 +102,13 @@ if __name__ == "__main__":
             willing_clients=[]
             for c in cluster:
                 chosen_val=random.uniform(0,1)
+                print(f"client {c} has chosen value {chosen_val} where the fixed value is {clients[c-1].fixed_participation_rate}\n")
                 if clients[c-1].fixed_participation_rate<chosen_val:
                     willing_clients.append(c)
-
+            print(f"Cluster {cluster_id} has {len(willing_clients)} willing clients\n")
+            if len(willing_clients)<=1:
+                continue
+            
             for c in willing_clients:
                 peers=[(f'localhost',clients[i-1].server_port) for i in willing_clients if i!=c]
                 json_data=clients[c-1].json_encode2()
@@ -123,6 +130,10 @@ if __name__ == "__main__":
             
             peers=[(f'localhost',clients[i-1].server_port) for i in willing_clients if i!=leader]
             clients[leader-1].broadcast_weights(peers)
+            if i>1:
+                for c in cluster:
+                    round_accuracy[c]['before_KD'] = accuracy_per_round[i-2][c]['after_KD']
+                    round_accuracy[c]['after_KD'] = accuracy_per_round[i-2][c]['after_KD']
             for c in willing_clients:
                 if c!=leader:
                     ac=feature_based_kd(clients[leader-1],clients[c-1])
@@ -130,38 +141,42 @@ if __name__ == "__main__":
                     round_accuracy[c]['after_KD'] = ac
             for c in cluster:
                 ac=clients[c-1].testing_phase()
+                if i>1:
+                    accuracy_history[c].append(ac)
                 clients[c-1].accuracy_history_list.append(ac)
-                
+            print("\n\n")
+        accuracy_per_round.append(round_accuracy)    
                     
 
             # EACH CLUSTER HAVE PENULTIMATE WEIGHTS SHARED AND STORED IN THE FORM OF DICTIONARY OF DICTIONARIES
             
             
             
-            print("\n\n")
-    # Plot accuracy of each client over rounds
-    plt.figure(figsize=(10, 5))
-    for client_id, acc_list in accuracy_history.items():
-        plt.plot(range(10), acc_list, label=f'Client {client_id}')
-    plt.xlabel("Rounds")
-    plt.ylabel("Accuracy")
-    plt.title("Client Accuracy Across Rounds")
-    plt.legend()
-    import time
-    plt.savefig("client_accuracy_over_rounds{}.png".format(time.time))
-    plt.show()     
+    # print(f"\nACCURACIES : {accuracy_history}\n")     
+    # print(f"\nACCURACIES per round : {accuracy_per_round}\n") 
+    # # Plot accuracy of each client over rounds
+    # plt.figure(figsize=(10, 5))
+    # for client_id, acc_list in accuracy_history.items():
+    #     plt.plot(range(2), acc_list, label=f'Client {client_id}')
+    # plt.xlabel("Rounds")
+    # plt.ylabel("Accuracy")
+    # plt.title("Client Accuracy Across Rounds")
+    # plt.legend()
+    # import time
+    # plt.savefig("client_accuracy_over_rounds{}.png".format(time.time))
+    # plt.show()     
     
     
-    # Plot accuracy trend
-    plt.figure(figsize=(10, 6))
-    for client in clients:
-        before_KD_acc = [round_acc[client.client_id]['before_KD'] for round_acc in accuracy_per_round]
-        after_KD_acc = [round_acc[client.client_id]['after_KD'] for round_acc in accuracy_per_round]
-        plt.plot(range(10), before_KD_acc, linestyle='dashed', label=f'Client {client_id} Before KD')
-        plt.plot(range(10), after_KD_acc, label=f'Client {client_id} After KD')
+    # # Plot accuracy trend
+    # plt.figure(figsize=(10, 6))
+    # for client in clients:
+    #     before_KD_acc = [round_acc[client.client_id]['before_KD'] for round_acc in accuracy_per_round]
+    #     after_KD_acc = [round_acc[client.client_id]['after_KD'] for round_acc in accuracy_per_round]
+    #     plt.plot(range(2), before_KD_acc, linestyle='dashed', label=f'Client {client_id} Before KD')
+    #     plt.plot(range(2), after_KD_acc, label=f'Client {client_id} After KD')
 
-    plt.xlabel('Rounds')
-    plt.ylabel('Accuracy')
-    plt.title('Client Accuracy Before and After KD Over Rounds')
-    plt.legend()
-    plt.show()      
+    # plt.xlabel('Rounds')
+    # plt.ylabel('Accuracy')
+    # plt.title('Client Accuracy Before and After KD Over Rounds')
+    # plt.legend()
+    # plt.show()      

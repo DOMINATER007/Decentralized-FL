@@ -49,9 +49,9 @@ def data_prep(num_clients, alpha, save_dir):
         test_part = (x_client[test_indices], y_client[test_indices])
         
         # Save dataset for this client
-        np.savez_compressed(os.path.join(save_dir, f"client_{client_id}_train.npz"),
+        np.savez_compressed(os.path.join(save_dir, f"client_{client_id+1}_train.npz"),
                             x=train_part[0], y=train_part[1])
-        np.savez_compressed(os.path.join(save_dir, f"client_{client_id}_test.npz"),
+        np.savez_compressed(os.path.join(save_dir, f"client_{client_id+1}_test.npz"),
                             x=test_part[0], y=test_part[1])
 
         print(f"Client {client_id} - Total samples: {len(x_client)}")
