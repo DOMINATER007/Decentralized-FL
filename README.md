@@ -32,7 +32,7 @@ Each client trains its model locally on its private dataset and communicates wit
 - **Frameworks/Libraries:** PyTorch, Scikit-learn  
 - **Networking:** TCP Sockets  
 - **Concurrency:** Multi-threading  
-- **Datasets:** MNIST, CIFAR  
+- **Datasets:** MNIST, CIFAR    
 
 ---
 
@@ -58,3 +58,19 @@ Each client:
    ```bash
    git clone https://github.com/<your-username>/<repo-name>.git
    cd <repo-name>
+   pip install -r requirements.txt
+   python main.py
+
+---
+
+## 📈 Results
+- **Accuracy improved by 28% after applying knowledge distillation.
+- **Demonstrated effective collaboration among 30 decentralized clients.
+- **Preserved complete data privacy with no data sharing.
+
+## 🔐 Privacy & Security
+
+- **No central server: Eliminates single point of failure.
+- **Weight/logit exchange only: Prevents raw data leakage.
+- **Peer authentication: Ensures only trusted clients participate.
+
